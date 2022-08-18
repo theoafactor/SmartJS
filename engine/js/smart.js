@@ -33,6 +33,7 @@
                        if(
                            typeof axios !== 'undefined' 
                            && typeof Cookies !== 'undefined'
+                           && typeof localforage !== "undefined"
                            ){
                                resolve({
                                    axios: axios,
@@ -71,10 +72,10 @@ const SmartFormatters = new function(){
 
             smart_options_storage = JSON.parse(smart_options_storage);
 
-            if(smart_options_storage.bold.option == true){
+            if(smart_options_storage.formatters.bold.option == true){
                 
                 //this is currently bold, make it normal
-                smart_options_storage.bold.option = false;
+                smart_options_storage.formatters.bold.option = false;
 
                 //update the option
                 document.querySelector(".smart-option-bold").style.color = "white";
@@ -82,7 +83,7 @@ const SmartFormatters = new function(){
             
             }else{
                 //this is currently bold, make it normal
-                smart_options_storage.bold.option = true;
+                smart_options_storage.formatters.bold.option = true;
                 document.querySelector(".smart-option-bold").style.color = "black";
                 document.querySelector(".smart-option-bold").style.backgroundColor = "white";
 
@@ -105,10 +106,10 @@ const SmartFormatters = new function(){
             }
 
             //save this to storage
-            smart_options_storage.bold.last_content_length = last_content_length
+            smart_options_storage.formatters.bold.last_content_length = last_content_length
 
              //update the time last updated
-             smart_options_storage.bold.last_updated = new Date().getTime();
+             smart_options_storage.formatters.bold.last_updated = new Date().getTime();
 
              //save it back
              await localforage.setItem('smart-options-storage', JSON.stringify(smart_options_storage));
@@ -145,6 +146,7 @@ const smartjs = (function(smartMixer){
         const smartEditor = document.querySelector(".smart-editor");
         const smartFormatter = document.querySelector(".smart-formatter");
         const smartContentArea = document.querySelector(".smart-content-area");
+        const smartContentAreaWrapper = document.querySelector(".smart-content-area-wrapper");
 
 
         //When the document body is loaded 
@@ -153,11 +155,13 @@ const smartjs = (function(smartMixer){
 
         smart_options_storage = JSON.parse(smart_options_storage);
 
-        for(smart_option in smart_options_storage){
+        let formatters = smart_options_storage.formatters;
 
-            console.log(smart_option)
-            if(smart_option === "bold"){
-                if(smart_options_storage[smart_option].option == true){
+        for(formatter in formatters){
+
+            console.log(formatter)
+            if(formatter === "bold"){
+                if(smart_options_storage.formatters[formatter].option == true){
                     //console.log("Nah")
                     document.querySelector(".smart-option-bold").style.color = "black";
                     document.querySelector(".smart-option-bold").style.backgroundColor = "white";
@@ -202,74 +206,57 @@ const smartjs = (function(smartMixer){
 
 
             // -- Typing Event 
-            smartContentArea.addEventListener("keyup", async function(event){
-                //Check the current options that are activated 
+            smartContentAreaWrapper.addEventListener("keyup", async function(event){
 
-                console.log(event)
-                //check the options storage
-                let smart_options_storage = await localforage.getItem("smart-options-storage");
+                let online_content = event.target.innerHTML;
 
-                smart_options_storage = JSON.parse(smart_options_storage);
+                console.log(online_content);
+
+                //now you can manage this content from here ..
+                let smart_options_storage = await getStorage();
 
                 console.log(smart_options_storage);
 
-                const active_smart_options = [];
-                //get the ones that are activated at the moment
-                for(smart_option in smart_options_storage){
-                    // if(smart_option.option == true){
-                    //     //this option is set to 'on' or true
-                    //     active_smart_options.push(smart_option);
+                //go through the formatters ..
+                let formatters = smart_options_storage.formatters;
 
-                    // }
-
-                    // console.log(event.target.innerHTML)
-                    switch(smart_option){
+                //console.log(formatters);
+                let new_content;
+                for(formatter in formatters){
+                    switch(formatter){
                         case "bold":
-                            if(smart_options_storage.bold.option == true){
-                                // console.log("apply bold")
-                                //get the newly added text 
-                                last_content_length = smart_options_storage.bold.last_content_length;
+                            if(smart_options_storage.formatters.bold.option == true){
+                                console.log("Use bold")
 
-                                console.log("Last content: ", last_content_length);
+                                last_content_length = smart_options_storage.formatters.bold.last_content_length;
 
-                                //remaining_content = `<strong>Tester</strong>`;
-                                remaining_content = `<strong>${event.target.innerText.substring(last_content_length)}</strong>`
+                                console.log(last_content_length)
 
-                                //event.target.innerHTML
-                                console.log("Remaining content: ", remaining_content)
-
-                                //return 'remaining_content'
-                                spanElement = document.createElement("span");
-                                spanElement.style.fontWeight = "bold";
-
-                               
-
+                                new_content = `<strong>${online_content}</strong>`;
                                 
-
-                                
-
-
                             }else{
-                                console.log("remove bold")
+                                console.log("Remove Bold")
+                                new_content = online_content;
+                                console.log("From Remove Bold: ", online_content);
                             }
-                        
 
                     }
 
-
-
                 }
 
+            
+                
+                //Repaint this DOM ...
+                //forces a hard repaint ..
+                smartContentAreaWrapper.innerHTML = `<div class='smart-content-area' contenteditable>${new_content}</div>`
 
-               
-
-
-
-               
+                //force the cursor to the end
+                caretHandlerEngine(new_content)
                 
 
-
             })
+
+
 
 
 
@@ -277,6 +264,44 @@ const smartjs = (function(smartMixer){
 
         
     })
+
+
+/**
+ * This Caret Handler Engine handles positioning of the caret during live update ..
+ * - this engine will be rewritten in the future
+ * @param {*} content 
+ */
+function caretHandlerEngine(content){
+    let content_length = content.length;
+
+    console.log(content_length)
+    let range_position = document.createRange();
+    let caret_setter = window.getSelection();
+   
+    if(content_length <= 1){
+        range_position.setStart(document.querySelector('.smart-content-area').childNodes[0],  1)
+    }else{
+        range_position.setStart(document.querySelector('.smart-content-area').childNodes[0], content_length )
+    }
+
+    range_position.collapse(true)
+    caret_setter.removeAllRanges();
+    caret_setter.addRange(range_position);
+
+    document.querySelector('.smart-content-area').focus();
+    
+}
+
+
+async function getStorage(){
+     //check the options storage
+     let smart_options_storage = await localforage.getItem("smart-options-storage");
+
+     return JSON.parse(smart_options_storage);
+
+}
+
+
 
 
 async function initStorage(){
@@ -287,23 +312,28 @@ async function initStorage(){
         //so create it 
 
         smart_options_storage = {
-                "bold" : {
-                    "option": false,
-                    "last_updated": null,
-                    "last_content_length": 0
+                formatters : {
+                        bold : {
+                            "option": false,
+                            "last_updated": null,
+                            "last_content_length": 0
+        
+                        },
+                        italic : {
+                            "option": false,
+                            "last_updated": null,
+                            "last_content_length": 0
+                        },
+                        underline : {
+                            "option": false,
+                            "last_updated" : null,
+                            "last_content_length": 0
+                        }
 
                 },
-                "italic" : {
-                    "option": false,
-                    "last_updated": null,
-                    "last_content_length": 0
-                },
-                "underline": {
-                    "option": false,
-                    "last_updated" : null,
-                    "last_content_length": 0
-                }
-
+                
+                last_content_captured: null,
+                last_content_length: 0
 
         }
 
