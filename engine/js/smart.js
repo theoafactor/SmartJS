@@ -58,6 +58,85 @@
 
 }
 
+/**
+ * SmartTagEngine checks, preformat or even postformat a content before rendition
+ */
+const SmartTagEngine = new function(){
+
+    this.checkTag = function(tag, content){
+
+        let content_result = {};
+
+        //what tag is this?
+        switch(tag){
+            case "bold":
+                //is there a tag around this content already..
+                regex = /^\<b\>/
+
+                check_bold = regex.test(content);
+
+               // console.log("Checks bold: ", check_bold)
+
+                if(check_bold == true){
+                    //bold tag already wraps this text..
+                    //strip the bold tag..
+                    //content_bold_stripped = content.split(/(\<b\>\<br\/\>)/)
+
+                    bold_stripped_element = document.createElement("div");
+
+                    bold_stripped_element.innerHTML = content_bold_added;
+
+                    content_bold_stripped = bold_stripped_element.innerText;
+
+
+                    //console.log("Content bold stripped: ", content_bold_stripped)
+
+                    content_result = {
+                        preformatted: content,
+                        raw: content_bold_stripped,
+                        stripped: content_bold_stripped,
+                        postformatted: content_bold_stripped,
+                        is_bold: true
+                    }
+
+                    // content = content_bold_stripped[0];
+
+                }else{
+                    //console.log("Bold false")
+                    content_bold_added = `<b>${content}</b>`;
+
+                    bold_stripped_element = document.createElement("div");
+
+                    bold_stripped_element.innerHTML = content_bold_added;
+
+                    content_bold_stripped = bold_stripped_element.innerText;
+
+
+
+                    content_result = {
+                        preformatted: content,
+                        raw: content,
+                        stripped: content_bold_stripped,
+                        postformatted: content_bold_added,
+                        is_bold: false  
+                    }
+
+                    //console.log("Bold false again: ", content_result)
+                }
+
+        }
+
+        console.log(content_result)
+        return content_result
+
+    }
+
+
+}
+
+
+
+
 
 /**
  * Smart Formatter Core Engine 
@@ -222,6 +301,8 @@ const smartjs = (function(smartMixer){
 
                 //console.log(formatters);
                 let new_content;
+                let new_content_length = 0;
+                let formatted_result;
                 for(formatter in formatters){
                     switch(formatter){
                         case "bold":
@@ -232,12 +313,28 @@ const smartjs = (function(smartMixer){
 
                                 console.log(last_content_length)
 
-                                new_content = `<strong>${online_content}</strong>`;
+                                //run through the tag engine 
+                                //bold_formatted_result = SmartTagEngine.checkTag("bold", online_content);
+
+                                //formatted_result = bold_formatted_result;
+
+                                //console.log("Hey: ", bold_formatted_result);
+
+                                //new_content = bold_formatted_result.postformatted;
+
+                                new_content = `<b>${online_content}</b>`
+                                //new_content = bold_formatted_result;
+                                //new_content = online_content
+                                new_content_length = new_content.length;
+
+                                // console.log("New content within bold: ", new_content)
+
                                 
                             }else{
                                 console.log("Remove Bold")
                                 new_content = online_content;
-                                console.log("From Remove Bold: ", online_content);
+                                console.log("From Remove Bold: ");
+                                new_content_length = new_content.length
                             }
 
                     }
@@ -250,9 +347,11 @@ const smartjs = (function(smartMixer){
                 //forces a hard repaint ..
                 smartContentAreaWrapper.innerHTML = `<div class='smart-content-area' contenteditable>${new_content}</div>`
 
+                console.log("New Content length: ", new_content_length)
                 //force the cursor to the end
-                caretHandlerEngine(new_content)
+                caretHandlerEngine(online_content)
                 
+
 
             })
 
@@ -272,17 +371,40 @@ const smartjs = (function(smartMixer){
  * @param {*} content 
  */
 function caretHandlerEngine(content){
+
+    console.log("Content from handler engine: ", content)
     let content_length = content.length;
+
+    console.log(content_length);
 
     console.log(content_length)
     let range_position = document.createRange();
     let caret_setter = window.getSelection();
    
     if(content_length <= 1){
+        console.log(document.querySelector('.smart-content-area').childNodes[0]);
         range_position.setStart(document.querySelector('.smart-content-area').childNodes[0],  1)
     }else{
-        range_position.setStart(document.querySelector('.smart-content-area').childNodes[0], content_length )
+        stripper = document.createElement("div");
+        stripper.innerHTML = content
+
+        stripper_text = stripper.innerText;
+
+        console.log("Stripper Text: ", stripper_text)
+
+        content_length = stripper_text.length;
+        console.log(document.querySelector('.smart-content-area').childNodes[0].tagName);
+        if(document.querySelector(".smart-content-area").childNodes[0].tagName == "B"){
+            innerTextContent = document.querySelector(".smart-content-area").childNodes[0].innerText;
+
+            document.querySelector(".smart-content-area").innerHTML = `<b>${innerTextContent}</b>`
+        }
+
+        //strip excess tags 
+        console.log(document.querySelector('.smart-content-area').childNodes.length);
+        range_position.setStart(document.querySelector('.smart-content-area').childNodes[0], document.querySelector('.smart-content-area').childNodes.length)
     }
+
 
     range_position.collapse(true)
     caret_setter.removeAllRanges();
@@ -357,4 +479,4 @@ return {
 
 
 
-}(new SmartMixer, SmartFormatters)); //Passes the SmartMixer and SmartFormatters to the smartjs core library
+}(new SmartMixer, SmartFormatters, SmartTagEngine)); //Passes the SmartMixer and SmartFormatters to the smartjs core library
