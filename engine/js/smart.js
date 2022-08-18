@@ -302,7 +302,12 @@ const smartjs = (function(smartMixer){
                 //console.log(formatters);
                 let new_content;
                 let new_content_length = 0;
-                let formatted_result;
+                let current_tags_options = {
+                    'bold' : {
+                        in_use: null,
+                    }
+                }
+
                 for(formatter in formatters){
                     switch(formatter){
                         case "bold":
@@ -311,30 +316,23 @@ const smartjs = (function(smartMixer){
 
                                 last_content_length = smart_options_storage.formatters.bold.last_content_length;
 
-                                console.log(last_content_length)
-
-                                //run through the tag engine 
-                                //bold_formatted_result = SmartTagEngine.checkTag("bold", online_content);
-
-                                //formatted_result = bold_formatted_result;
-
-                                //console.log("Hey: ", bold_formatted_result);
-
-                                //new_content = bold_formatted_result.postformatted;
-
+                          
                                 new_content = `<b>${online_content}</b>`
                                 //new_content = bold_formatted_result;
                                 //new_content = online_content
                                 new_content_length = new_content.length;
-
-                                // console.log("New content within bold: ", new_content)
-
-                                
+                                current_tags_options['bold']['in_use'] = true
+                                  
                             }else{
+
+
                                 console.log("Remove Bold")
                                 new_content = online_content;
-                                console.log("From Remove Bold: ");
                                 new_content_length = new_content.length
+                                current_tags_options['bold']['in_use'] = false
+
+
+
                             }
 
                     }
@@ -349,7 +347,7 @@ const smartjs = (function(smartMixer){
 
                 console.log("New Content length: ", new_content_length)
                 //force the cursor to the end
-                caretHandlerEngine(new_content)
+                caretHandlerEngine(current_tags_options, new_content)
                 
 
 
@@ -370,7 +368,7 @@ const smartjs = (function(smartMixer){
  * - this engine will be rewritten in the future
  * @param {*} content 
  */
-function caretHandlerEngine(content){
+function caretHandlerEngine(current_tags_options, content){
 
     console.log("Content from handler engine: ", content)
     let content_length = content.length;
@@ -396,13 +394,30 @@ function caretHandlerEngine(content){
         console.log(document.querySelector('.smart-content-area').childNodes[0].tagName);
         if(document.querySelector(".smart-content-area").childNodes[0].tagName == "B"){
             innerTextContent = document.querySelector(".smart-content-area").childNodes[0].innerText;
+            console.log("Current Tags Options: ", current_tags_options)
+            if(current_tags_options.bold.in_use == false){
+                //strip away the bold (b) tags
+                document.querySelector('.smart-content-area').innerHTML = innerTextContent;
+                range_position.setStart(document.querySelector('.smart-content-area').childNodes[0], document.querySelector('.smart-content-area').childNodes.length)
+            }else{
+                //leave the b tags as they are
+                document.querySelector(".smart-content-area").innerHTML = `<b>${innerTextContent}</b>`
+                range_position.setStart(document.querySelector('.smart-content-area').childNodes[0], document.querySelector('.smart-content-area').childNodes.length)
+            }
 
-            document.querySelector(".smart-content-area").innerHTML = `<b>${innerTextContent}</b>`
+            
+
+           
+            
+
+        }else{
+        
+            range_position.setStart(document.querySelector('.smart-content-area').childNodes[0], content_length)
+
         }
 
-        //strip excess tags 
-        console.log(document.querySelector('.smart-content-area').childNodes.length);
-        range_position.setStart(document.querySelector('.smart-content-area').childNodes[0], document.querySelector('.smart-content-area').childNodes.length)
+        // console.log(document.querySelector('.smart-content-area').childNodes.length);
+        
     }
 
 
