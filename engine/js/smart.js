@@ -349,7 +349,7 @@ const smartjs = (function(smartMixer){
 
                 console.log("New Content length: ", new_content_length)
                 //force the cursor to the end
-                caretHandlerEngine(online_content)
+                caretHandlerEngine(new_content)
                 
 
 
