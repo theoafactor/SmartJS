@@ -58,83 +58,42 @@
 
 }
 
-/**
- * SmartTagEngine checks, preformat or even postformat a content before rendition
- */
-const SmartTagEngine = new function(){
 
-    this.checkTag = function(tag, content){
+const SmartEditorContent = new function(){
+    
+    this.saveEditorContent = async function(new_content){
 
-        let content_result = {};
-
-        //what tag is this?
-        switch(tag){
-            case "bold":
-                //is there a tag around this content already..
-                regex = /^\<b\>/
-
-                check_bold = regex.test(content);
-
-               // console.log("Checks bold: ", check_bold)
-
-                if(check_bold == true){
-                    //bold tag already wraps this text..
-                    //strip the bold tag..
-                    //content_bold_stripped = content.split(/(\<b\>\<br\/\>)/)
-
-                    bold_stripped_element = document.createElement("div");
-
-                    bold_stripped_element.innerHTML = content_bold_added;
-
-                    content_bold_stripped = bold_stripped_element.innerText;
-
-
-                    //console.log("Content bold stripped: ", content_bold_stripped)
-
-                    content_result = {
-                        preformatted: content,
-                        raw: content_bold_stripped,
-                        stripped: content_bold_stripped,
-                        postformatted: content_bold_stripped,
-                        is_bold: true
-                    }
-
-                    // content = content_bold_stripped[0];
-
-                }else{
-                    //console.log("Bold false")
-                    content_bold_added = `<b>${content}</b>`;
-
-                    bold_stripped_element = document.createElement("div");
-
-                    bold_stripped_element.innerHTML = content_bold_added;
-
-                    content_bold_stripped = bold_stripped_element.innerText;
-
-
-
-                    content_result = {
-                        preformatted: content,
-                        raw: content,
-                        stripped: content_bold_stripped,
-                        postformatted: content_bold_added,
-                        is_bold: false  
-                    }
-
-                    //console.log("Bold false again: ", content_result)
-                }
-
+        //console.log("Save content to storage: ", new_content)
+    
+        new_content_update = {
+            content: new_content,
+            last_updated: new Date().getTime()
         }
+    
+        await localforage.setItem("smart-contents-storage", JSON.stringify(new_content_update));
+    
+    }
+    
+    this.getEditorContent = async function(){
+    
+        let content_storage = await localforage.getItem("smart-contents-storage");
 
-        console.log(content_result)
-        return content_result
-
+        console.log(content_storage)
+    
+        if(content_storage != null && typeof content_storage != "undefined"){
+    
+            content_storage = JSON.parse(content_storage);
+            content_storage = content_storage.content;
+    
+        }else{
+            content_storage = null;
+        }
+    
+        return content_storage;
     }
 
 
 }
-
-
 
 
 
@@ -170,10 +129,21 @@ const SmartFormatters = new function(){
             }
 
             //get the last index for the entered data in the content area
-            let last_content_length = smartContentArea.innerText.length;
+            //let last_content_length = smartContentArea.innerText.length; //seems SmartContentArea cannot provide what we need right now..
+
+            //Lets switch to a Storage
+            lastContent = await SmartEditorContent.getEditorContent();
+
+            if(lastContent == null){
+                last_content_length = 0;
+            }else{
+                last_content_length = lastContent.length;
+            }
+
+            
 
            
-
+            console.log("Last Content Bold Option Length: ", last_content_length)
 
             
             //get the current item in the editor 
@@ -259,6 +229,17 @@ const smartjs = (function(smartMixer){
 
         }
 
+
+        //Get the Editor Content if you want to do persistence
+        // let editorContent = await getEditorContent()
+        // if(editorContent != null){
+        //     console.log(editorContent);
+        // }
+
+
+
+
+
         /**
              * Resetting the content to "start typing ..." when clicked from outside 
              *  - when the body tag is clicked, the content of the smartContentArea should be returned to "start typing ..."
@@ -312,7 +293,7 @@ const smartjs = (function(smartMixer){
                     switch(formatter){
                         case "bold":
                             if(smart_options_storage.formatters.bold.option == true){
-                                console.log("Use bold")
+                                console.log("Currently using bold ...")
 
                                 last_content_length = smart_options_storage.formatters.bold.last_content_length;
 
@@ -326,7 +307,7 @@ const smartjs = (function(smartMixer){
                             }else{
 
 
-                                console.log("Remove Bold")
+                                console.log("Currently not using bold ...")
                                 new_content = online_content;
                                 new_content_length = new_content.length
                                 current_tags_options['bold']['in_use'] = false
@@ -345,9 +326,12 @@ const smartjs = (function(smartMixer){
                 //forces a hard repaint ..
                 smartContentAreaWrapper.innerHTML = `<div class='smart-content-area' contenteditable>${new_content}</div>`
 
-                console.log("New Content length: ", new_content_length)
+                //console.log("New Content length: ", new_content_length)
                 //force the cursor to the end
                 caretHandlerEngine(current_tags_options, new_content)
+
+                //save this to the storage
+                await SmartEditorContent.saveEditorContent(new_content)
                 
 
 
@@ -360,7 +344,10 @@ const smartjs = (function(smartMixer){
         
 
         
-    })
+})
+
+
+
 
 
 /**
@@ -370,31 +357,31 @@ const smartjs = (function(smartMixer){
  */
 function caretHandlerEngine(current_tags_options, content){
 
-    console.log("Content from handler engine: ", content)
+    //console.log("Content from handler engine: ", content)
     let content_length = content.length;
 
-    console.log(content_length);
+    //console.log(content_length);
 
-    console.log(content_length)
+    //console.log(content_length)
     let range_position = document.createRange();
     let caret_setter = window.getSelection();
    
     if(content_length <= 1){
-        console.log(document.querySelector('.smart-content-area').childNodes[0]);
+        //console.log(document.querySelector('.smart-content-area').childNodes[0]);
         range_position.setStart(document.querySelector('.smart-content-area').childNodes[0],  1)
     }else{
-        stripper = document.createElement("div");
+        let stripper = document.createElement("div");
         stripper.innerHTML = content
 
-        stripper_text = stripper.innerText;
+        let stripper_text = stripper.innerText;
 
-        console.log("Stripper Text: ", stripper_text)
+        //console.log("Stripper Text: ", stripper_text)
 
         content_length = stripper_text.length;
-        console.log(document.querySelector('.smart-content-area').childNodes[0].tagName);
+        //console.log(document.querySelector('.smart-content-area').childNodes[0].tagName);
         if(document.querySelector(".smart-content-area").childNodes[0].tagName == "B"){
             innerTextContent = document.querySelector(".smart-content-area").childNodes[0].innerText;
-            console.log("Current Tags Options: ", current_tags_options)
+            //console.log("Current Tags Options: ", current_tags_options)
             if(current_tags_options.bold.in_use == false){
                 //strip away the bold (b) tags
                 document.querySelector('.smart-content-area').innerHTML = innerTextContent;
@@ -415,8 +402,6 @@ function caretHandlerEngine(current_tags_options, content){
             range_position.setStart(document.querySelector('.smart-content-area').childNodes[0], content_length)
 
         }
-
-        // console.log(document.querySelector('.smart-content-area').childNodes.length);
         
     }
 
@@ -428,6 +413,9 @@ function caretHandlerEngine(current_tags_options, content){
     document.querySelector('.smart-content-area').focus();
     
 }
+
+
+
 
 
 async function getStorage(){
@@ -494,4 +482,4 @@ return {
 
 
 
-}(new SmartMixer, SmartFormatters, SmartTagEngine)); //Passes the SmartMixer and SmartFormatters to the smartjs core library
+}(new SmartMixer, SmartFormatters)); //Passes the SmartMixer and SmartFormatters to the smartjs core library
