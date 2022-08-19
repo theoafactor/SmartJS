@@ -230,13 +230,13 @@ const smartjs = (function(smartMixer){
         }
 
 
+       
+
         //Get the Editor Content if you want to do persistence
-        // let editorContent = await getEditorContent()
-        // if(editorContent != null){
-        //     console.log(editorContent);
-        // }
-
-
+        let editorContent = await SmartEditorContent.getEditorContent()
+        if(editorContent != null){
+            smartContentAreaWrapper.innerHTML = `<div class='smart-content-area' contenteditable>${editorContent}</div>`
+        }
 
 
 
@@ -368,7 +368,10 @@ function caretHandlerEngine(current_tags_options, content){
    
     if(content_length <= 1){
         //console.log(document.querySelector('.smart-content-area').childNodes[0]);
-        range_position.setStart(document.querySelector('.smart-content-area').childNodes[0],  1)
+        // range_position.setStart(document.querySelector('.smart-content-area').childNodes[0],  1)
+        if(document.querySelector('.smart-content-area').childNodes[0]){
+            range_position.setStart(document.querySelector('.smart-content-area').childNodes[0],  1)
+        }
     }else{
         let stripper = document.createElement("div");
         stripper.innerHTML = content
