@@ -201,20 +201,24 @@ const SmartTunnel = function(){
 
     this.bold_tunnel = async function(character, smartStorage){
 
-        //console.log("in the bold tunnel: ", character)
+        console.log("in the bold tunnel: ", character)
 
         //check if the bold option is active..
         format_status = await this.is_active_format("bold", smartStorage)
-        
+        let modified_character;
         if(format_status.currently_active === true){
+            console.log("Bold is active")
             //wrap this character with bold from the last_content
             //split this character if it has <b> already
             
-            character = `<b>${character}</b>`
+            modified_character = `<b>${character}</b>`
+        }else{
+            console.log("Bold is not active")
+            modified_character = `${character}`
         }
 
 
-        return character;
+        return modified_character;
 
 
     }
@@ -256,18 +260,33 @@ const SmartContentEditor = function(){
             console.log(character)
 
             if(last_content != null){
-                var range = window.getSelection().getRangeAt(0);
-                var newElement = document.createElement('span');
+                let range = document.getSelection().getRangeAt(0);
+                newElement = document.createElement('span');
                 // newElement.id = 'myId';
                 newElement.innerHTML += `${character}`
-                console.log(range.startContainer.parentNode);
+
+                //console.log("New Element: ", newElement)
+
                 if(range.startContainer.parentNode.className ==='smart-content-area') {
-                    console.log("range: ", range);
+                   range.startContainer.parentNode.firstChild.remove();
                     // delete whatever is on the range
-                    // range.deleteContents();
-                    
+                    range.deleteContents();
                     // place your span
                     range.insertNode(newElement);
+
+                    //console.log("Range: ", range)
+                 }else{
+                    
+                   
+                    // console.log(range.startContainer.parentNode.firstChild)
+                    // console.log("Other Element: ", newElement)
+                    // // place your span
+                   
+                    // // range.startContainer.parent.remove();
+                    // range.startContainer.innerHTML = "";
+                    // range.insertNode(newElement);
+                    // console.log(range);
+                   
                  }
             }
 
@@ -287,7 +306,6 @@ const SmartContentEditor = function(){
     this.caretEngineHandler = function(last_content, character){
         let range_position = document.createRange();
         let caret_setter = window.getSelection();
-        console.log(document.querySelector('.smart-content-area').childNodes.length)
 
         //if(document.querySelector(".smart-content-area").childNodes[0]){
             range_position.setStart(document.querySelector('.smart-content-area').childNodes[0], 1);
@@ -389,7 +407,7 @@ const smartjs = (function(smartMixer, smartStorage, smartTunnel, smartContentEdi
                             result = await smartTunnel.runTunnel(event.key, smartStorage);
                             console.log(result)
                             //then add
-                            character = result;
+                            character += result;
     
     
                         }
